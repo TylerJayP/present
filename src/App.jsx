@@ -837,7 +837,7 @@ const App = () => {
     }, 1000);
     
     return () => clearInterval(timerInterval);
-  }, [currentTeamIndex, mqttClient, teams, warning, currentTeamGradingStartTime, manualSkipToGrading, currentState, eventConfig, calculateTimeRemaining]);
+  }, [currentTeamIndex, mqttClient, teams, warning, currentTeamGradingStartTime, manualSkipToGrading, currentState, eventConfig]);
 
   // Upload URL button component with icon
   const UploadUrlButton = () => (
