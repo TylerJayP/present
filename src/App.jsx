@@ -889,14 +889,7 @@ const App = () => {
             
             {/* Use the memoized team URLs section component */}
             <MemoizedTeamUrlsSection teams={teams} />
-            
-            {/* Show connected peers info */}
-            {connectedPeers.length > 0 && (
-              <div className="connected-peers">
-                <p>🟢 Connected grading apps: {connectedPeers.length}</p>
-              </div>
-            )}
-            
+                        
             {/* URL Upload Modal */}
             <UrlUploadModal 
               isOpen={isUrlModalOpen}
@@ -972,35 +965,9 @@ const App = () => {
                       ></div>
                     </div>
                   )}
-                  <p>Results will display once {minPollResponses} evaluations are received</p>
-                  
-                  {/* Show connection status */}
-                  <div className="grading-status">
-                    <ConnectionStatus />
-                    {connectedPeers.length > 0 && (
-                      <span style={{ marginLeft: '15px' }}>
-                        📱 {connectedPeers.length} grading app(s) connected
-                      </span>
-                    )}
-                  </div>
-                  
-                  {/* Debug info */}
-                  {demoMode && (
-                    <div style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
-                      Debug: showGradingResults={showGradingResults.toString()}, pollResponses={pollResponses}, minRequired={minPollResponses}
-                    </div>
-                  )}
+                  <p>Results will display once {minPollResponses} evaluations are received</p>                  
                 </div>
-                
-                {/* For testing - button to manually show results */}
-                {demoMode && (
-                  <button 
-                    onClick={() => setShowGradingResults(true)}
-                    className="test-button"
-                  >
-                    Show Results (Test)
-                  </button>
-                )}
+
               </div>
             ) : (
               // Enough responses received - show poll results
@@ -1011,8 +978,6 @@ const App = () => {
                 </div>
               </div>
             )}
-            
-            <p className="grading-footer">Grading period ends in <strong>{formatTime(timeRemaining, 'mm:ss')}</strong></p>
           </div>
         );
       
@@ -1066,12 +1031,12 @@ const App = () => {
     );
   };
 
-  return (
-    <div className="app-container">
-      {renderContent()}
-      {renderSimulationStatus()}
-    </div>
-  );
+return (
+  <div className="app-container">
+    {renderContent()}
+    {demoMode && renderSimulationStatus()}
+  </div>
+);
 };
 
 export default App;
