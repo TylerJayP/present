@@ -713,7 +713,7 @@ const App = () => {
     }
   };
 
-// FIXED: Timer logic that properly handles manual advancement
+// FIXED: Timer logic with proper manual team completion
 useEffect(() => {
   const timerInterval = setInterval(() => {
     // Get a fresh timestamp every tick
@@ -767,7 +767,35 @@ useEffect(() => {
         // Still in manual skip grading mode for current team
         currentTeamIdx = currentTeamIndex;
       }
-    } else {
+    } 
+    // FIXED: Handle completion of manually advanced teams that went through natural grading
+    else if (manuallyAdvancedTeam === currentTeamIndex && currentTeamGradingStartTime && manuallyAdvancedTeamStartTime) {
+      // Check if this manually advanced team's grading time is complete
+      const gradingElapsed = currentTime.getTime() - currentTeamGradingStartTime.getTime();
+      
+      if (gradingElapsed >= eventConfig.gradingTime) {
+        // Manually advanced team's grading completed - advance to next team
+        console.log(`🔒 Manually advanced Team ${currentTeamIndex + 1} grading completed - advancing to next team`);
+        
+        const nextTeamIdx = currentTeamIndex + 1;
+        currentTeamIdx = nextTeamIdx;
+        
+        // Mark the next team as manually advanced
+        setManuallyAdvancedTeam(nextTeamIdx);
+        setManuallyAdvancedTeamStartTime(currentTime); // Track when this team started
+        console.log(`🔒 Manually advanced to Team ${nextTeamIdx + 1} at ${currentTime.toLocaleTimeString()}`);
+        
+        // Clear grading start time for the new team
+        setCurrentTeamGradingStartTime(null);
+        
+        console.log(`🔄 Team ${nextTeamIdx + 1} will start with presentation`);
+        
+      } else {
+        // Still in grading mode for current manually advanced team
+        currentTeamIdx = currentTeamIndex;
+      }
+    }
+    else {
       // Determine which team index to use
       if (manuallyAdvancedTeam !== null && manuallyAdvancedTeam > naturalTeamIdx) {
         // We've manually advanced beyond natural timing - stick with manual team
