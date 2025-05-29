@@ -877,28 +877,31 @@ useEffect(() => {
       }
       
     } else {
-      // Priority 2: Natural timing logic for normal progression
-      // Calculate time within current team's slot
+      // Priority 2: Calculate timing for current team slot
       let timeInCurrentTeamSlot;
       
+      // FIXED: Manually advanced teams use their own timeline
       if (manuallyAdvancedTeam === currentTeamIdx && manuallyAdvancedTeamStartTime) {
-        // We're on a manually advanced team - calculate time from when we actually advanced
-        timeInCurrentTeamSlot = Math.max(0, currentTime.getTime() - manuallyAdvancedTeamStartTime.getTime());
+        // This team was manually advanced - calculate time from when it actually started
+        timeInCurrentTeamSlot = currentTime.getTime() - manuallyAdvancedTeamStartTime.getTime();
         
-        // Debug logging to track the manually advanced team timing
-        if (timeInCurrentTeamSlot < 1000) { // First second
-          console.log(`🔒 Manual team ${currentTeamIdx + 1}: Starting fresh at ${Math.floor(timeInCurrentTeamSlot/1000)}s - should be in PRESENTATION mode`);
+        // Debug logging
+        if (timeInCurrentTeamSlot < 2000) { // First 2 seconds
+          console.log(`🔒 Manual team ${currentTeamIdx + 1}: ${Math.floor(timeInCurrentTeamSlot/1000)}s elapsed since manual start`);
         }
       } else {
-        // Natural timing calculation
+        // Natural timing calculation for non-manually-advanced teams
         timeInCurrentTeamSlot = elapsedTime % teamTime;
       }
       
-      // Determine mode based on natural timing
+      // Determine mode based on timing within the team's slot
       if (timeInCurrentTeamSlot < eventConfig.presentationTime) {
         // ===== PRESENTATION MODE =====
         if (currentState !== 'presentation') {
           console.log(`🎬 TIMER: Switching to PRESENTATION mode for Team ${currentTeamIdx + 1} at ${currentTime.toLocaleTimeString()}`);
+          if (manuallyAdvancedTeam === currentTeamIdx) {
+            console.log(`🔒 Manual team ${currentTeamIdx + 1}: Starting presentation phase`);
+          }
         }
         setCurrentState('presentation');
         const presentationTimeRemaining = eventConfig.presentationTime - timeInCurrentTeamSlot;
@@ -911,21 +914,33 @@ useEffect(() => {
         }
         
       } else {
-        // ===== NATURAL GRADING MODE =====
+        // ===== GRADING MODE =====
         const wasNotInGradingMode = currentState !== 'grading';
         
         if (wasNotInGradingMode) {
           console.log(`🎯 TIMER: Switching to GRADING mode for Team ${currentTeamIdx + 1} at ${currentTime.toLocaleTimeString()}`);
+          if (manuallyAdvancedTeam === currentTeamIdx) {
+            console.log(`🔒 Manual team ${currentTeamIdx + 1}: Starting grading phase`);
+          }
         }
         setCurrentState('grading');
         
         // Set grading start time if not already set
         setCurrentTeamGradingStartTime(prevStartTime => {
           if (!prevStartTime) {
-            // Natural progression - grading starts after presentation time
-            const teamStartTime = new Date(eventConfig.date.getTime() + (currentTeamIdx * teamTime));
-            const gradingStartTime = new Date(teamStartTime.getTime() + eventConfig.presentationTime);
-            console.log(`🕐 NATURAL: Set grading start time for Team ${currentTeamIdx + 1}: ${gradingStartTime.toLocaleTimeString()}`);
+            let gradingStartTime;
+            
+            if (manuallyAdvancedTeam === currentTeamIdx && manuallyAdvancedTeamStartTime) {
+              // For manually advanced teams, grading starts after their presentation time
+              gradingStartTime = new Date(manuallyAdvancedTeamStartTime.getTime() + eventConfig.presentationTime);
+              console.log(`🕐 MANUAL TEAM: Set grading start time for Team ${currentTeamIdx + 1}: ${gradingStartTime.toLocaleTimeString()}`);
+            } else {
+              // Natural progression - grading starts after presentation time
+              const teamStartTime = new Date(eventConfig.date.getTime() + (currentTeamIdx * teamTime));
+              gradingStartTime = new Date(teamStartTime.getTime() + eventConfig.presentationTime);
+              console.log(`🕐 NATURAL: Set grading start time for Team ${currentTeamIdx + 1}: ${gradingStartTime.toLocaleTimeString()}`);
+            }
+            
             return gradingStartTime;
           }
           return prevStartTime;
@@ -935,11 +950,11 @@ useEffect(() => {
         let gradingTimeRemaining;
         
         if (currentTeamGradingStartTime) {
-          const gradingElapsed = currentTime.getTime() - currentTeamGradingStartTime.getTime();
+          const gradingElapsed = Math.max(0, currentTime.getTime() - currentTeamGradingStartTime.getTime());
           gradingTimeRemaining = Math.max(0, eventConfig.gradingTime - gradingElapsed);
         } else {
           // Fallback calculation
-          gradingTimeRemaining = Math.max(0, teamTime - timeInCurrentTeamSlot);
+          gradingTimeRemaining = Math.max(0, eventConfig.gradingTime - (timeInCurrentTeamSlot - eventConfig.presentationTime));
         }
         
         setTimeRemaining(gradingTimeRemaining);
