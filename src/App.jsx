@@ -151,6 +151,9 @@ const App = () => {
   // Add state to track when current team's grading started
   const [currentTeamGradingStartTime, setCurrentTeamGradingStartTime] = useState(null);
   
+  // Track when we've manually advanced beyond natural timing
+  const [manuallyAdvancedTeam, setManuallyAdvancedTeam] = useState(null);
+  
   // Updated polling data structure to match grading app format
   const [pollingData, setPollingData] = useState({
     averages: {
@@ -673,6 +676,7 @@ const App = () => {
   // Reset manual skip when team changes
   useEffect(() => {
     setManualSkipToGrading(false);
+    // Don't reset manuallyAdvancedTeam here - it should persist until natural timing catches up
   }, [currentTeamIndex]);
 
   // Display debug info on mount
@@ -700,7 +704,7 @@ const App = () => {
     }
   };
 
-  // FIXED: Simplified and more reliable timer logic
+  // FIXED: Timer logic that properly handles manual advancement
   useEffect(() => {
     const timerInterval = setInterval(() => {
       // Get a fresh timestamp every tick
@@ -726,8 +730,7 @@ const App = () => {
       const teamTime = eventConfig.presentationTime + eventConfig.gradingTime;
       const naturalTeamIdx = Math.floor(elapsedTime / teamTime);
       
-      // Use natural team progression unless we're in a manual skip scenario
-      let currentTeamIdx = naturalTeamIdx;
+      let currentTeamIdx;
       
       // Handle manual skip completion - when manual skip grading time is up, advance to next team
       if (manualSkipToGrading && currentTeamGradingStartTime) {
@@ -737,18 +740,42 @@ const App = () => {
           // Manual skip grading completed - advance to next team and reset manual skip
           console.log(`⏭️ Manual skip grading completed for Team ${currentTeamIndex + 1} - advancing to next team`);
           
-          currentTeamIdx = currentTeamIndex + 1;
+          const nextTeamIdx = currentTeamIndex + 1;
+          currentTeamIdx = nextTeamIdx;
+          
+          // Mark that we've manually advanced beyond natural timing
+          setManuallyAdvancedTeam(nextTeamIdx);
+          console.log(`🔒 Manually advanced to Team ${nextTeamIdx + 1} - locking to prevent natural timing override`);
+          
           setManualSkipToGrading(false);
           setCurrentTeamGradingStartTime(null);
           
-          // Don't set manual override - just let natural timing take over for the new team
         } else {
           // Still in manual skip grading mode
           currentTeamIdx = currentTeamIndex;
         }
       } else {
-        // Use natural team progression
-        currentTeamIdx = naturalTeamIdx;
+        // Determine which team index to use
+        if (manuallyAdvancedTeam !== null && manuallyAdvancedTeam > naturalTeamIdx) {
+          // We've manually advanced beyond natural timing - stick with manual team
+          currentTeamIdx = manuallyAdvancedTeam;
+          console.log(`🔒 Using manually advanced team ${currentTeamIdx + 1} (natural would be ${naturalTeamIdx + 1})`);
+          
+          // Check if natural timing has caught up - if so, clear the manual advancement
+          if (naturalTeamIdx >= manuallyAdvancedTeam) {
+            console.log(`🔓 Natural timing caught up - releasing manual advancement lock`);
+            setManuallyAdvancedTeam(null);
+            currentTeamIdx = naturalTeamIdx;
+          }
+        } else {
+          // Use natural team progression
+          currentTeamIdx = naturalTeamIdx;
+          
+          // Clear manual advancement if natural timing has moved beyond it
+          if (manuallyAdvancedTeam !== null && naturalTeamIdx > manuallyAdvancedTeam) {
+            setManuallyAdvancedTeam(null);
+          }
+        }
       }
       
       // Check if we've finished all teams
@@ -792,6 +819,11 @@ const App = () => {
           // Just entered manual skip - we're at the end of presentation time
           timeInCurrentTeamSlot = eventConfig.presentationTime;
         }
+      } else if (manuallyAdvancedTeam === currentTeamIdx) {
+        // We're on a manually advanced team - calculate time from when we advanced
+        // For simplicity, assume we start at the beginning of the team's slot
+        const teamStartTime = new Date(eventConfig.date.getTime() + (currentTeamIdx * teamTime));
+        timeInCurrentTeamSlot = Math.max(0, currentTime.getTime() - teamStartTime.getTime());
       } else {
         // Natural timing calculation
         timeInCurrentTeamSlot = elapsedTime % teamTime;
@@ -885,7 +917,21 @@ const App = () => {
     }, 1000);
     
     return () => clearInterval(timerInterval);
-  }, [currentTeamIndex, mqttClient, teams, warning, currentTeamGradingStartTime, manualSkipToGrading, currentState, eventConfig]);
+  }, [currentTeamIndex, mqttClient, teams, warning, currentTeamGradingStartTime, manualSkipToGrading, currentState, eventConfig, manuallyAdvancedTeam]);
+
+  // Reset manual advancement when team changes naturally
+  useEffect(() => {
+    if (manuallyAdvancedTeam !== null) {
+      const elapsedTime = new Date().getTime() - eventConfig.date.getTime();
+      const teamTime = eventConfig.presentationTime + eventConfig.gradingTime;
+      const naturalTeamIdx = Math.floor(elapsedTime / teamTime);
+      
+      if (naturalTeamIdx >= manuallyAdvancedTeam) {
+        console.log(`🔓 Clearing manual advancement - natural timing has caught up`);
+        setManuallyAdvancedTeam(null);
+      }
+    }
+  }, [manuallyAdvancedTeam, eventConfig]);
 
   // Upload URL button component with icon
   const UploadUrlButton = () => (
