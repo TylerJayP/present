@@ -109,7 +109,7 @@ const App = () => {
       // Total event duration: 6 teams × (team presentation + grading time)
       endTime.setMinutes(endTime.getMinutes() + 90); // End time will be 3:30 PM
       
-      console.log('REAL MODE: Using scheduled presentation date: May 28, 2025 at 2:00 PM');
+      console.log('REAL MODE: Using scheduled presentation date: August 06, 2025 at 2:00 PM');
     }
     
     console.log(`Event start: ${startTime.toLocaleString()}`);
