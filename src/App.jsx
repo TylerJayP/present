@@ -84,7 +84,7 @@ const App = () => {
   
   // Change demoMode to true for testing with current time and short durations
   // Set to false for real presentation settings (May 28, 2025 at 2:00 PM with full durations)
-  const demoMode = true;
+  const demoMode = false;
   
   // Create dates based on demo mode - wrapped in useMemo to prevent recreation on every render
   const eventConfig = useMemo(() => {
@@ -103,7 +103,7 @@ const App = () => {
       console.log('DEMO MODE: Using current time for testing');
     } else {
       // REAL MODE: Use the actual presentation date - May 28, 2025 at 2:00 PM
-      startTime = new Date('May 28, 2025 14:00:00');
+      startTime = new Date('August 06, 2025 14:00:00');
       
       endTime = new Date(startTime);
       // Total event duration: 6 teams × (team presentation + grading time)
