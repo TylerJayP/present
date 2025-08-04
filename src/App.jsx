@@ -1059,7 +1059,7 @@ useEffect(() => {
         return (
           <div className="countdown-container">
             <h1>Presentation Day Countdown</h1>
-            <h2>May 28, 2025 at 2:00 PM</h2>
+            <h2>August 06, 2025 at 2:00 PM</h2>
             
             {/* Use the enhanced countdown component for long durations */}
             {!demoMode && timeRemaining > 24 * 60 * 60 * 1000 ? (
